@@ -52,3 +52,7 @@ Then we need to set up the AWS CLI to use the newly created role.
 6. Finally enter a default output format, if you want.
 
 After that you can finally do the actual bootstrapping. Run ```cdk bootstrap``` and you will have a CloudFormation stack set up with resources needed for CDK.
+
+## Architecture
+
+![overview](Pics/overview.png)
