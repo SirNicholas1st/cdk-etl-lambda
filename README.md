@@ -33,7 +33,7 @@ However, before you can carry out the bootsrapping you will need for example an 
 2. Go to ```Users``` and ```Create user```
 3. Give the User a meaningful name like "AdminUser", you do not need to give the user access to the AWS Management Console.
 4. If you just started you most likely do not have a ```User group``` with the necessary permissions. Click the ```Create group``` button and attach the ```AdministratorAccess``` permission policy to the group and give the group a name. After that just click the ```Create user group``` button.
-5. Then select the create group in the ```Set permissions``` step and hit next, review and click ````Create user```
+5. Then select the create group in the ```Set permissions``` step and hit next, review and click ```Create user```
 
 Now you have a fully fledged AdminUser, by default the user has all permissions for all resources. Lastly you need to create access keys for the CLI.
 
