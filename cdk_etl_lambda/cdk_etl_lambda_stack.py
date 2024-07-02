@@ -20,6 +20,13 @@ class CdkEtlLambdaStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+
+        # this is one example how to use variables in CDK. The variable is passed to the cdk synth/command
+        # example cdk synth --parameters ENVIRONMENT=asdasdaads
+        environment = cdk.CfnParameter(self, "ENVIRONMENT",
+                                       type="String",
+                                       description="this parameter will be used in naming resources.").value_as_string
+
         # Creating a deadletter queue, in prod use, the retention period should be longer so you have more time to deal with any failures.
         dlq = sqs.Queue(
             self, "CdkEtlLambdaDLQ",
@@ -60,6 +67,7 @@ class CdkEtlLambdaStack(Stack):
         # This bucket is the landing bucket for the files and when an object is created here it should send a message to the SNS
         source_bucket = s3.Bucket(
             self, "cdkEtlSourceBucket",
+            bucket_name=f"{environment}-cdk-source-bucket",
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             # this removal policy means, that if the stack is deleted the bucket will also be deleted.
             # if the bucket is not empty it will raise an error and the stack will remain in CloudFormation with only the resources that it failed to delete.
@@ -79,6 +87,7 @@ class CdkEtlLambdaStack(Stack):
         # This is the bucket where the Lambda saves the parsed files.
         target_bucket = s3.Bucket(
             self, "cdkEtlTargetBucket",
+            bucket_name=f"{environment}-cdk-target-bucket",
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             removal_policy=RemovalPolicy.DESTROY,
             lifecycle_rules=[
@@ -89,13 +98,28 @@ class CdkEtlLambdaStack(Stack):
             ]
         )
 
+        # creating a pandas layer for the lambda
+        layer = lambda_.LayerVersion(self, "pandas_layer",
+                                     code=lambda_.Code.from_asset("layers/pandas.zip"),
+                                     description="A pandas layer for the lambda",
+                                     compatible_runtimes=[
+                                         lambda_.Runtime.PYTHON_3_12,
+                                         lambda_.Runtime.PYTHON_3_11,
+                                         lambda_.Runtime.PYTHON_3_10
+                                     ],
+                                     # if we delete the stack i want this gone also.
+                                     removal_policy=RemovalPolicy.DESTROY
+                                     )
+
         # creating the lambda to the stack.
         etl_lambda = lambda_.Function(
             self, "Function",
+            function_name=f"{environment}-cdk-parser-lambda",
             description="The parser lambda.",
             runtime=lambda_.Runtime.PYTHON_3_12,
             code=lambda_.Code.from_asset(path="lambda"),
-            handler="lambda_function.lambda_handler"
+            handler="lambda_function.lambda_handler",
+            layers=[layer]
         )
 
         # adding an event source to the Lambda (SQS)
