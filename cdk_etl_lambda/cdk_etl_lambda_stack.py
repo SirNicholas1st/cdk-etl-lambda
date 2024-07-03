@@ -124,10 +124,12 @@ class CdkEtlLambdaStack(Stack):
 
         # adding an event source to the Lambda (SQS)
         # we want at the max 10 s3 events at the same time
-        # also we will wait at the most 10 seconds before invoking the function.
+        # also we will wait at the most 10 seconds before invoking the function. Increase this if your data takes a while to build up and youre in no rush to parse it, lowers costs.
+        # finally we allow the lambda to notify the SQS queue that we failed to handle few messages
         etl_lambda.add_event_source(lambda_events.SqsEventSource(upload_queue,
                                                                   batch_size=10,
-                                                                  max_batching_window=Duration.seconds(10)))
+                                                                  max_batching_window=Duration.seconds(10),
+                                                                  report_batch_item_failures=True))
 
     
 
