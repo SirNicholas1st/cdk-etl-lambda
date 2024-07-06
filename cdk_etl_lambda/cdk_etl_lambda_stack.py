@@ -108,7 +108,7 @@ class CdkEtlLambdaStack(Stack):
                                          lambda_.Runtime.PYTHON_3_10
                                      ],
                                      # if we delete the stack i want this gone also.
-                                     removal_policy=RemovalPolicy.DESTROY
+                                     removal_policy=RemovalPolicy.DESTROY,
                                      )
 
         # creating the lambda to the stack.
@@ -119,7 +119,9 @@ class CdkEtlLambdaStack(Stack):
             runtime=lambda_.Runtime.PYTHON_3_12,
             code=lambda_.Code.from_asset(path="lambda"),
             handler="lambda_function.lambda_handler",
-            layers=[layer]
+            layers=[layer],
+            timeout=Duration.seconds(30),
+            memory_size=256
         )
 
         # adding an event source to the Lambda (SQS)
@@ -132,6 +134,8 @@ class CdkEtlLambdaStack(Stack):
                                                                   report_batch_item_failures=True))
 
     
-
+        # lastly we add some bucket permissions for the lambda, it needs to be able to read the source bucket and put objects to the target bucket
+        source_bucket.grant_read(etl_lambda)
+        target_bucket.grant_write(etl_lambda)
 
         
