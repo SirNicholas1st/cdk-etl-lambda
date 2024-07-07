@@ -1,3 +1,4 @@
+import os
 import json
 import gzip
 import boto3
@@ -9,6 +10,7 @@ from datetime import datetime as dt
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+TARGET_BUCKET = os.getenv("TARGET_BUCKET_NAME")
 
 def extract_file_info(item: json) -> dict:
 
@@ -51,8 +53,15 @@ def create_csv_from_df(csv_df: pd.DataFrame) -> bytes:
      compressed_csv_bytes = zip_csv(data = file_bytes)
      return compressed_csv_bytes
 
-def upload_to_target_bucket(compressed_bytes: bytes) -> None:
-     pass
+def upload_to_target_bucket(compressed_bytes: bytes, target_bucket: str) -> None:
+     
+     unique_identifier = dt.now().strftime(format="%Y%m%d%m%f")
+     file_name = f"test_csv_{unique_identifier}.csv.gz"
+
+    # storing the csv to the target bucket, if prefix is needed, include it in the key.
+     s3.put_object(Body=compressed_bytes, Bucket=target_bucket, Key=file_name)
+
+     return None
      
      
 
@@ -75,6 +84,7 @@ def lambda_handler(event, context):
                     file_info = extract_file_info(item)
                     csv_df = read_csv_to_df(file_info=file_info)
                     compressed_file_bytes = create_csv_from_df(csv_df=csv_df)
+                    upload_to_target_bucket(compressed_bytes=compressed_file_bytes, target_bucket=TARGET_BUCKET)
                     
                 except Exception as e:
                     logger.info(f"""Got an error: {e} while processing the following event record {record}.
