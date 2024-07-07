@@ -56,3 +56,57 @@ After that you can finally do the actual bootstrapping. Run ```cdk bootstrap``` 
 ## Architecture
 
 ![overview](Pics/overview.png)
+
+### Resources created by the stack
+
+1. 2 S3 buckets. One where the files are intended to land and one where the output files are stored.
+2. SNS topic, which will receive messages for every ObjectCreated event from the source bucket
+3. SQS queue which ingests the messages from the SNS topic.
+4. DLQ where failed events are stored.
+5. Lambda function which is triggered by the SQS.
+
+### How to deploy
+
+The stack requires one variable which in this case is called ```ENVIRONMENT```. This variable is intended to be use in the resource names. For example it is prefixed for the bucket names. 
+
+It is usually a good idea to have somekind of prefix to your resource names, especially for S3 buckets, since they need to be unique globally. There also used to be a "situation" where AWS would charge the bucket owner for every unauthorized request. This means if someone knew your bucket name they could bombard it with requests and you would end up paying the bill. This has been addressed and more info can be found from here: https://aws.amazon.com/about-aws/whats-new/2024/05/amazon-s3-no-charge-http-error-codes/
+
+But anyway, the stack can be deployed using the ```cdk deploy``` command with the parameters flag, here is an example:
+
+```
+cdk deploy --parameters ENVIRONMENT=myfunnyenvironment
+```
+
+### What costs can you expect from this?
+
+If you are on your AWS freetier, it will basically cover everything, there is mainly one resource type that you might run out if you are testing the solution heavily.
+
+The AWS freetier has a ton of free stuff but for some reason it only covers 2000 S3 tier 1 requests. The tier 1 requests are ```PUT```, ```COPY```, ```POST``` and ```LIST```. If you test the solution heavily you might run out of these. After you run out these it will cost you 0.005usd/1000 requests.
+
+Other than that, the freetier should be sufficent, here is an example how much I ended up using from the freetier during this project by uploading 650 test files to the source bucket (all resources not included, only the few biggest ones):
+
+![freetier usage](Pics/aws_freetier_usage.png)
+
+NOTE: If you leave this stack running you will use up AWS resources atleast from the Lambda receiving ```Empty Receives```. This means that the Lambda function will go and ask the SQS queue if there is anything to handle, but the queue is empty hence the name.
+
+Here is a good short post about the empty receives metric: https://repost.aws/knowledge-center/sqs-high-charges
+
+## Cleaning up
+
+You can simply delete the stack by running
+
+```
+cdk destroy
+```
+This will delete the created stack and all resources with it. The only exception is that if your buckets had files in them, they will give an error. If that happens just empty the buckets and run the command again.
+
+CloudWatch logs will not be deleted, if you wish to delete the logs, navigate to CloudWatch and delete all Log groups.
+
+Lastly you might have noticed that CDK is also a CloudFormation stack with a S3 bucket and other stuff. If you wish to delete this stack, delete stack from the CloudFormation UI in the Management Console. If you delete this stack, you need to bootstrap again if you wish to use cdk again.
+The S3 bucket created by the stack will not be deleted, you can manually empty and delete it.
+
+### Confirming the cleanup
+
+Once all has been deleted, you can navigate to Tag Editor and search for all supported resource types in all AWS regions and check if there is any lingering resources that you wish to delete.
+
+NOTE: There will be alot of default AWS resources like subnets, SecurityGroups etc. These are created automatically to a lot of AWS regions.
