@@ -124,6 +124,9 @@ class CdkEtlLambdaStack(Stack):
             memory_size=256
         )
 
+        # adding a environmental variable for the target bucket, we do not wish to hard code in the lambda itself.
+        etl_lambda.add_environment("TARGET_BUCKET_NAME", target_bucket.bucket_name)
+
         # adding an event source to the Lambda (SQS)
         # we want at the max 10 s3 events at the same time
         # also we will wait at the most 10 seconds before invoking the function. Increase this if your data takes a while to build up and youre in no rush to parse it, lowers costs.
