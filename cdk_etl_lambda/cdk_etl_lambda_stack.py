@@ -117,7 +117,7 @@ class CdkEtlLambdaStack(Stack):
             function_name=f"{environment}-cdk-parser-lambda",
             description="The parser lambda.",
             runtime=lambda_.Runtime.PYTHON_3_12,
-            code=lambda_.Code.from_asset(path="lambda"),
+            code=lambda_.Code.from_asset(path="lambda_"),
             handler="lambda_function.lambda_handler",
             layers=[layer],
             timeout=Duration.seconds(30),
