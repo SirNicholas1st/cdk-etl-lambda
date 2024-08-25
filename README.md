@@ -77,6 +77,9 @@ But anyway, the stack can be deployed using the ```cdk deploy``` command with th
 cdk deploy --parameters ENVIRONMENT=myfunnyenvironment
 ```
 
+### Testing
+WIP: there is a cool library for testing AWS related stuff: MOTO, will create tests for the Lambdas functions
+
 ### What costs can you expect from this?
 
 If you are on your AWS freetier, it will basically cover everything, there is mainly one resource type that you might run out if you are testing the solution heavily.
