@@ -1,6 +1,7 @@
 import json
 import boto3
 import unittest
+import pandas as pd
 from moto import mock_aws
 from moto.sns import sns_backends
 from moto.core import DEFAULT_ACCOUNT_ID
@@ -19,8 +20,8 @@ class TestClass(unittest.TestCase):
         self.test_region = "us-east-1"
         # setting up a mock s3, somehow moto is super dead set on wanting the region as us-east-1
         self.bucket_name = "test-bucket"
-        self.s3_conn = boto3.resource("s3", region_name=self.test_region)
-        self.s3_conn.create_bucket(Bucket=self.bucket_name)
+        self.s3_client = boto3.client("s3", region_name=self.test_region)
+        self.s3_client.create_bucket(Bucket=self.bucket_name)
 
         # setting up a sns
         self.sns_topic_name = "test_topic"
@@ -33,15 +34,15 @@ class TestClass(unittest.TestCase):
         self.que_url = self.sqs_que_url
 
         # simulating a file upload to s3. I want to have 2 files, since a SQS event can contain multiple object created events.
-        self.file_contents = ["Hello, World1", "Hello, World2!"]
-        self.s3_object_keys = ["test_file1.txt", "test_file2.txt"]
+        self.file_contents = ["Hello, World1", "Hello;World;2"]
+        self.s3_object_keys = ["test_file1.txt", "test_file2.csv"]
 
         # empty list for storing the sns messages, will be used to create a sqs event
         self.sns_messages = []
         # looping the sample files "uploading" them to s3 and publishing a mock up message to the sns
         for key, content in zip(self.s3_object_keys, self.file_contents):
 
-            self.s3_conn.Bucket(self.bucket_name).put_object(Key=key, Body=content)
+            self.s3_client.put_object(Bucket=self.bucket_name, Key=key, Body=content)
 
         # simulating s3 sending a message to the sns que, seems like there is no way to automate this based on the object created.
             s3_event = {
@@ -80,7 +81,7 @@ class TestClass(unittest.TestCase):
         
     def test_extract_file_info(self):
         """
-        Testing the extract_file_info function from the lambda.
+        Testing the extract_file_info function from the lambda. The purpose of the function is to extract the source buckets and file keys from the sqs event.
         In this test we use the mocked up version of the sqs event.
         The loop is need since the lambda handler does the looping.
         This function might not need testing as it is now since it just uses the keys from the event to get the good stuff, but good practise.
@@ -92,7 +93,7 @@ class TestClass(unittest.TestCase):
             for item in record_body["Records"]:
                 
                 # storing the output of the function
-                file_info = lambda_function.extract_file_info(item)
+                self.file_info = lambda_function.extract_file_info(item)
 
                 # hard coded keys ok, since im betting the the sqs structure doesnt change anywhile soon
                 expected_file_info = {
@@ -100,10 +101,26 @@ class TestClass(unittest.TestCase):
                     "file_name": item["s3"]["object"]["key"]
                 }
 
-                self.assertEqual(file_info, expected_file_info)
+                self.assertEqual(self.file_info, expected_file_info)
 
-    # TODO more tests
+    def test_read_file_to_df(self):
+        """
+        Testing the function that reads the file into a DF. 
+        """
+
+        # simulating the result of the extract file info to a variable
+        # manually taking the sqs item for the txt file and feeding it to the extract function
+        sqs_item_for_test_txt = json.loads(self.sqs_event["Records"][0]["body"])["Records"][0]
+        file_info_test_txt = lambda_function.extract_file_info(sqs_item_for_test_txt)
+        
+        expected_error = ValueError
+        
+        with self.assertRaises(expected_exception=expected_error):
+            output_txt_file = lambda_function.read_csv_to_df(file_info=file_info_test_txt, s3=self.s3_client)
+        
             
+        # TODO More tests
+
 
 if __name__ == "__main__":
     unittest.main()
