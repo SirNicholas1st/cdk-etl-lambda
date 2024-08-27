@@ -22,7 +22,7 @@ def extract_file_info(item: json) -> dict:
         "file_name": file_name
     }
 
-def read_csv_to_df(file_info: dict) -> pd.DataFrame:
+def read_csv_to_df(file_info: dict, s3: any) -> pd.DataFrame:
 
     bucket = file_info["source_bucket"]
     file_name = file_info["file_name"]
@@ -53,7 +53,7 @@ def create_csv_from_df(csv_df: pd.DataFrame) -> bytes:
      compressed_csv_bytes = zip_csv(data = file_bytes)
      return compressed_csv_bytes
 
-def upload_to_target_bucket(compressed_bytes: bytes, target_bucket: str) -> None:
+def upload_to_target_bucket(compressed_bytes: bytes, target_bucket: str, s3: any) -> None:
      
      unique_identifier = dt.now().strftime(format="%Y%m%d%m%f")
      file_name = f"test_csv_{unique_identifier}.csv.gz"
@@ -67,7 +67,7 @@ def upload_to_target_bucket(compressed_bytes: bytes, target_bucket: str) -> None
 
 def lambda_handler(event, context):
 
-    global s3
+    
     s3 = boto3.client("s3")
 
     # if one message from the sqs event fails we want to reprocess it
@@ -82,9 +82,9 @@ def lambda_handler(event, context):
 
                 try:
                     file_info = extract_file_info(item)
-                    csv_df = read_csv_to_df(file_info=file_info)
+                    csv_df = read_csv_to_df(file_info=file_info, s3=s3)
                     compressed_file_bytes = create_csv_from_df(csv_df=csv_df)
-                    upload_to_target_bucket(compressed_bytes=compressed_file_bytes, target_bucket=TARGET_BUCKET)
+                    upload_to_target_bucket(compressed_bytes=compressed_file_bytes, target_bucket=TARGET_BUCKET, s3=s3)
                     
                 except Exception as e:
                     logger.info(f"""Got an error: {e} while processing the following event record {record}.
