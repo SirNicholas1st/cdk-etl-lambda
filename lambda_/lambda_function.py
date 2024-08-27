@@ -28,6 +28,10 @@ def read_csv_to_df(file_info: dict, s3: any) -> pd.DataFrame:
     file_name = file_info["file_name"]
     s3_object = s3.get_object(Bucket=bucket, Key=file_name)
 
+    # just for the sake of practising writing tests.
+    if not file_name.endswith(".csv"):
+         raise ValueError
+
     file_string = s3_object["Body"].read().decode("utf-8")
 
     csv_df = pd.read_csv(StringIO(file_string), delimiter=";")
