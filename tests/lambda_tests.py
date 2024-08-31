@@ -113,13 +113,22 @@ class TestClass(unittest.TestCase):
         sqs_item_for_test_txt = json.loads(self.sqs_event["Records"][0]["body"])["Records"][0]
         file_info_test_txt = lambda_function.extract_file_info(sqs_item_for_test_txt)
         
+        # here we test the function with a txt file, we are supposed to get a ValueError.
         expected_error = ValueError
         
         with self.assertRaises(expected_exception=expected_error):
             output_txt_file = lambda_function.read_csv_to_df(file_info=file_info_test_txt, s3=self.s3_client)
         
             
-        # TODO More tests
+        # Now we test it with a csv.
+        sqs_item_for_test_csv = json.loads(self.sqs_event["Records"][1]["body"])["Records"][0]
+        file_info_test_csv = lambda_function.extract_file_info(sqs_item_for_test_csv)
+        expectected_result = pd.DataFrame(columns=["Hello", "World", "2"])
+        
+        actual_result = lambda_function.read_csv_to_df(file_info=file_info_test_csv, s3=self.s3_client)
+        
+        pd.testing.assert_frame_equal(expectected_result, actual_result)
+
 
 
 if __name__ == "__main__":
