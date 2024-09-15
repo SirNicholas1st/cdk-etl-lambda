@@ -78,7 +78,13 @@ cdk deploy --parameters ENVIRONMENT=myfunnyenvironment
 ```
 
 ### Testing
-WIP: there is a cool library for testing AWS related stuff: MOTO, will create tests for the Lambdas functions
+There is a cool library for testing AWS related stuff: MOTO. Under the directory "tests" you can find a Python file, with easy examples how to use the Moto library. The file can be run like a basic Python file, no arguments are needed. In case you run into a issue relating to importing the Lambda function it is most likely caused by the fact that the Python path does not include the path where the tests are.
+
+The Lambda and its functions are so basic that I only wrote 2 tests for it.
+
+0. Before any tests are done, we mock the behavior of S3, SNS, SQS in the setup phase.
+1. First test, tests that the function extract file info correctly extracts the event data.
+2. The second tests, tests the function read file to df function outputs a dataframe in the expected format. And also we tests that it raises a ValueError if the file passed is not a csv file.
 
 ### What costs can you expect from this?
 
